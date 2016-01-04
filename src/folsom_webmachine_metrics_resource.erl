@@ -90,10 +90,11 @@ resource_exists(Id, ReqData, Context) ->
 get_request(undefined, undefined, undefined) ->
     folsom_metrics:get_metrics();
 get_request(Id, undefined, undefined) ->
-    case folsom_metrics:get_metric_info(Id) of
-        [{_, [{type, histogram}]}] ->
+    MetricInfo = folsom_metrics:get_metric_info(Id),
+    case is_histogram(MetricInfo) of
+        true ->
             [{value, folsom_metrics:get_histogram_statistics(Id)}];
-        _ ->
+        false ->
             [{value, folsom_metrics:get_metric_value(Id)}]
     end;
 get_request(Id, undefined, CoId) ->
@@ -161,3 +162,9 @@ metric_exists(Id) when is_binary(Id) ->
     end;
 metric_exists(Id) when is_atom(Id) ->
     {folsom_metrics:metric_exists(Id), Id}.
+
+% @doc Return true if this metric info is for a histogram.
+is_histogram([{_, MetricProps}]) ->
+    proplists:get_value(type, MetricProps) =:= histogram;
+is_histogram(_) ->
+    false.
